@@ -8,11 +8,23 @@ accumulated = 0
 counter = 0
 average = None
 
+people_list = []
+
+
 def add_value(value):
     global counter, accumulated, average
     counter += 1
     accumulated += value
     average = accumulated / counter
+
+
+def people_exist(dni):
+    if len(people_list) > 0:
+        for ppl in people_list:
+            if ppl['dni'] == dni:
+                return True
+    return False
+
 
 @app.route('/')
 def index():
@@ -41,5 +53,32 @@ def info():
         "average": average
     })
 
+
+@app.route('/people', methods=['POST'])
+def people():
+    req_data = request.get_json()
+    name = None
+    dni = None
+    height = None
+    if 'name' in req_data and 'dni' in req_data and 'height' in req_data:
+        name = req_data['name']
+        dni = req_data['dni']
+        height = req_data['height']
+        if type(name) == str and type(dni) == int and type(height) == float:
+            if people_exist(dni):
+                return 'a person with dni {} already exists in the system'.format(dni), 409
+            else:
+                people_list.append(req_data)
+                return jsonify({
+                    "messege": "success"
+                }), 201
+    return {
+        "messege": "400 - BAD REQUEST",
+        "expected": {
+            "name": "<str value>",
+            "dni": "<int value>",
+            "height": "<float value>" 
+        }
+    }, 400
 if __name__ == '__main__':
     app.run(debug = True)
