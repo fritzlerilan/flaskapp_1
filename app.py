@@ -30,7 +30,7 @@ def sum():
     if value < 0:
         return 'Value param must be an integer equal or greater than 0', 400
     add_value(value)
-    return 'value: {} acummulated: {}'.format(value, accumulated), 200
+    return '', 200
 
 @app.route('/info', methods=['GET'])
 def info():
