@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import request
+from flask import jsonify
 
 app = Flask(__name__)
 
@@ -27,6 +28,15 @@ def sum():
         return 'Value param must be an integer equal or greater than 0', 400
     add_value(value)
     return 'value: {} acummulated: {}'.format(value, accumulated), 200
+
+@app.route('/info', methods=['GET'])
+def info():
+    global accumulated, average, counter
+    return jsonify({
+        "total": accumulated,
+        "count": counter,
+        "average": average
+    })
 
 if __name__ == '__main__':
     app.run(debug = True)
