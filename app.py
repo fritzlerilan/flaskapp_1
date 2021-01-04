@@ -16,7 +16,10 @@ def add_value(value):
 
 @app.route('/')
 def index():
-    return 'Hello world'
+    return jsonify({
+        "messege": "Hi! The root route is empty. Try with /sum or /info endpoints",
+        "status": 400
+    }), 400
 
 @app.route('/sum', methods=['POST'])
 def sum():
