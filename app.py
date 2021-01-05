@@ -92,7 +92,7 @@ def people():
             dni = int(args)
             ppl = people_exist(dni)
             if ppl:
-                return jsonify(ppl, 200)
+                return jsonify(ppl),200
             return '', 204
         
         return jsonify(people_list), 200
