@@ -137,5 +137,22 @@ def people():
         else:
             return '', 400
 
+
+@app.route('/hora-arg')
+def datetime():
+    r = requests.get('http://worldtimeapi.org/api/timezone/ETC/UTC')
+    if r.status_code == 200:
+        req_json = r.json()
+        unixtime = int(req_json['unixtime'])
+        utc_arrow_obj = arrow.get(unixtime)
+        time_formated_arg = utc_arrow_obj.to('GMT-3').format('DD/MM/YYYY HH:mm:ss')
+        return '{}'.format(time_formated_arg), 200
+    else:
+        date_utc_now = arrow.utcnow()
+        date_utc_now = date_utc_now.to('GMT-3').format('DD/MM/YYYY HH:mm:ss')
+        return '{}'.format(date_utc_now), 200
+
+
+
 if __name__ == '__main__':
     app.run(debug = True)
