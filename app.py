@@ -15,17 +15,20 @@ mongo = PyMongo(app)
 
 accumulated = counter = average = 0
 
+
 def add_value(value):
     global counter, accumulated, average
     counter += 1
     accumulated += value
     average = accumulated / counter
 
+
 def people_exist_in_db(dni):
     print(mongo.db.people.find_one({"dni": dni}))
     if json_util.dumps(mongo.db.people.find_one({"dni": dni})) == "None":
         return False
     return True
+
 
 def validate_types(name, dni, height):
 
@@ -35,48 +38,51 @@ def validate_types(name, dni, height):
     return False
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    return jsonify({
-        "messege": "Hi! The root route is empty. Try with /sum or /info endpoints",
-        "status": 400
-    }), 400
+    return (
+        jsonify(
+            {
+                "messege": "Hi! The root route is empty. Try with /sum or /info endpoints",
+                "status": 400,
+            }
+        ),
+        400,
+    )
 
-@app.route('/sum', methods=['POST'])
+
+@app.route("/sum", methods=["POST"])
 def sum():
-    value = request.args.get('value', None)
+    value = request.args.get("value", None)
     if not value:
-        return 'You must send the value URL param'
+        return "You must send the value URL param"
     else:
         if int(value) < 0:
-            return 'Value param must be an integer equal or greater than 0', 400
+            return "Value param must be an integer equal or greater than 0", 400
         else:
             add_value(int(value))
-            return '', 200
+            return "", 200
 
-@app.route('/info', methods=['GET'])
+
+@app.route("/info", methods=["GET"])
 def info():
     global accumulated, average, counter
-    return jsonify({
-        "total": accumulated,
-        "count": counter,
-        "average": average
-    })
+    return jsonify({"total": accumulated, "count": counter, "average": average})
 
 
-@app.route('/people', methods=['POST', 'GET', 'DELETE'])
+@app.route("/people", methods=["POST", "GET", "DELETE"])
 def people():
 
     bad_req_response_expected = {
-            "messege": "400 - BAD REQUEST",
-            "expected": {
-                "name": "<str value>",
-                "dni": "<int value>",
-                "height": "<float value>" 
-            }
-        }
+        "messege": "400 - BAD REQUEST",
+        "expected": {
+            "name": "<str value>",
+            "dni": "<int value>",
+            "height": "<float value>",
+        },
+    }
 
-    if request.method == 'POST':
+    if request.method == "POST":
 
         req_data = request.get_json(silent=True)
         if req_data is None:
@@ -84,80 +90,86 @@ def people():
 
         name = dni = height = None
 
-        if 'name' in req_data and 'dni' in req_data and 'height' in req_data:
+        if "name" in req_data and "dni" in req_data and "height" in req_data:
             person = {
-                "name": req_data['name'],
-                "dni": req_data['dni'],
-                "height": req_data['height']
+                "name": req_data["name"],
+                "dni": req_data["dni"],
+                "height": req_data["height"],
             }
 
-            if validate_types(person['name'], person['dni'], person['height']) \
-                and people_exist_in_db(person['dni'] == False):
+            if validate_types(
+                person["name"], person["dni"], person["height"]
+            ) and people_exist_in_db(person["dni"] == False):
                 id = mongo.db.people.insert(person)
-                return jsonify({
-                    "messege": "success with id {}".format(str(id))
-                }), 201
+                return jsonify({"messege": "success with id {}".format(str(id))}), 201
             else:
-                if(people_exist_in_db(person['dni'] == True)):
-                    return 'a person with dni {} already exists in the system'.format(person['dni']), 409
+                if people_exist_in_db(person["dni"] == True):
+                    return (
+                        "a person with dni {} already exists in the system".format(
+                            person["dni"]
+                        ),
+                        409,
+                    )
                 else:
                     return jsonify(bad_req_response_expected), 400
         else:
             return jsonify(bad_req_response_expected), 400
-    
 
-    if request.method == 'GET':
-        dni = request.args.get('dni', None)
+    if request.method == "GET":
+        dni = request.args.get("dni", None)
         if dni:
             try:
                 dni = int(dni)
             except:
-                return jsonify({
-                    "messege": "expected a <int> value for the key 'dni'"
-                }), 400
+                return (
+                    jsonify({"messege": "expected a <int> value for the key 'dni'"}),
+                    400,
+                )
             person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
             if person != "null":
                 response = Response(person, mimetype="application/json")
                 response.status_code = 200
                 return response
             else:
-                return '', 204
+                return "", 204
         else:
             people = mongo.db.people.find()
             response = json_util.dumps(people)
-            return Response(response, mimetype='application/json')
+            return Response(response, mimetype="application/json")
 
-    if request.method == 'DELETE':
-        dni = request.args.get('dni', None)
+    if request.method == "DELETE":
+        dni = request.args.get("dni", None)
         if dni:
             try:
                 dni = int(dni)
             except:
-                return jsonify({
-                    "messege": "expected a <int> value for the key 'dni'"
-                }), 400
+                return (
+                    jsonify({"messege": "expected a <int> value for the key 'dni'"}),
+                    400,
+                )
             person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
-            if person != 'null':
+            if person != "null":
                 mongo.db.people.delete_one({"dni": dni})
-                return '', 200
+                return "", 200
             else:
-                return jsonify({
-                    "messege": "dni {} not found".format(dni)
-                }), 204
+                return jsonify({"messege": "dni {} not found".format(dni)}), 204
         else:
-            return '', 400
+            return "", 400
 
 
-@app.route('/hora-arg')
+@app.route("/hora-arg")
 def hora_arg():
-    r = requests.get('http://worldtimeapi.org/api/timezone/ETC/UTC')
+    r = requests.get("http://worldtimeapi.org/api/timezone/ETC/UTC")
     date_utc_now = None
     if r.status_code == 200:
-        date_utc_now = int(r.json()['unixtime'])
+        date_utc_now = int(r.json()["unixtime"])
     else:
         date_utc_now = datetime.utcnow()
-    time_formated_arg = arrow.get(date_utc_now).to('GMT-3').format('DD/MM/YYYY HH:mm:ss')
-    return '{}'.format(time_formated_arg), 200
+    time_formated_arg = (
+        arrow.get(date_utc_now).to("GMT-3").format("DD/MM/YYYY HH:mm:ss")
+    )
+    return "{}".format(time_formated_arg), 200
 
-if __name__ == '__main__':
-    app.run(debug = True)
+
+if __name__ == "__main__":
+    app.run(debug=True)
