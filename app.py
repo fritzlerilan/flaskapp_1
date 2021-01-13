@@ -1,14 +1,14 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
+from datetime import datetime
+import arrow
+import requests
 
 app = Flask(__name__)
 
 accumulated = counter = average = 0
 people_list = []
-
-
-
 
 def add_value(value):
     global counter, accumulated, average
@@ -136,6 +136,18 @@ def people():
                 }), 204
         else:
             return '', 400
+
+
+@app.route('/hora-arg')
+def hora_arg():
+    r = requests.get('http://worldtimeapi.org/api/timezone/ETC/UTC')
+    date_utc_now = None
+    if r.status_code == 200:
+        date_utc_now = int(r.json()['unixtime'])
+    else:
+        date_utc_now = datetime.utcnow()
+    time_formated_arg = arrow.get(date_utc_now).to('GMT-3').format('DD/MM/YYYY HH:mm:ss')
+    return '{}'.format(time_formated_arg), 200
 
 if __name__ == '__main__':
     app.run(debug = True)
