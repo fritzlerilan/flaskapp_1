@@ -1,14 +1,19 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
+from flask import Response
 from datetime import datetime
+from flask_pymongo import PyMongo
+from bson import json_util
 import arrow
 import requests
 
 app = Flask(__name__)
+app.config["MONGO_URI"] = "mongodb://localhost:27017/peopledb_test"
+
+mongo = PyMongo(app)
 
 accumulated = counter = average = 0
-people_list = []
 
 def add_value(value):
     global counter, accumulated, average
@@ -16,18 +21,16 @@ def add_value(value):
     accumulated += value
     average = accumulated / counter
 
-def people_exist(dni):
-    if len(people_list) > 0:
-        for ppl in people_list:
-            if ppl['dni'] == dni:
-                return ppl
-            else:
-                return False
-    else:
+def people_exist_in_db(dni):
+    print(mongo.db.people.find_one({"dni": dni}))
+    if json_util.dumps(mongo.db.people.find_one({"dni": dni})) == "None":
         return False
+    return True
 
 def validate_types(name, dni, height):
+
     if type(name) == str and type(dni) == int and type(height) == float:
+        print("TRUE")
         return True
     return False
 
@@ -82,18 +85,21 @@ def people():
         name = dni = height = None
 
         if 'name' in req_data and 'dni' in req_data and 'height' in req_data:
-            name = req_data['name']
-            dni = req_data['dni']
-            height = req_data['height']
+            person = {
+                "name": req_data['name'],
+                "dni": req_data['dni'],
+                "height": req_data['height']
+            }
 
-            if validate_types(name, dni, height) and not people_exist(dni):
-                people_list.append(req_data)
+            if validate_types(person['name'], person['dni'], person['height']) \
+                and people_exist_in_db(person['dni'] == False):
+                id = mongo.db.people.insert(person)
                 return jsonify({
-                    "messege": "success"
+                    "messege": "success with id {}".format(str(id))
                 }), 201
             else:
-                if(people_exist(dni)):
-                    return 'a person with dni {} already exists in the system'.format(dni), 409
+                if(people_exist_in_db(person['dni'] == True)):
+                    return 'a person with dni {} already exists in the system'.format(person['dni']), 409
                 else:
                     return jsonify(bad_req_response_expected), 400
         else:
@@ -109,13 +115,17 @@ def people():
                 return jsonify({
                     "messege": "expected a <int> value for the key 'dni'"
                 }), 400
-            ppl = people_exist(dni)
-            if ppl:
-                return jsonify(ppl),200
+            person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
+            if person != "null":
+                response = Response(person, mimetype="application/json")
+                response.status_code = 200
+                return response
             else:
                 return '', 204
         else:
-            return jsonify(people_list), 200
+            people = mongo.db.people.find()
+            response = json_util.dumps(people)
+            return Response(response, mimetype='application/json')
 
     if request.method == 'DELETE':
         dni = request.args.get('dni', None)
@@ -126,9 +136,9 @@ def people():
                 return jsonify({
                     "messege": "expected a <int> value for the key 'dni'"
                 }), 400
-            founded = [ppl for ppl in people_list if ppl['dni'] == dni]
-            if len(founded) > 0:
-                people_list.remove(founded[0])
+            person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
+            if person != 'null':
+                mongo.db.people.delete_one({"dni": dni})
                 return '', 200
             else:
                 return jsonify({
