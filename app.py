@@ -24,8 +24,7 @@ def add_value(value):
 
 
 def people_exist_in_db(dni):
-    print(mongo.db.people.find_one({"dni": dni}))
-    if json_util.dumps(mongo.db.people.find_one({"dni": dni})) == "None":
+    if json_util.dumps(mongo.db.people.find_one({"dni": dni})) == "null":
         return False
     return True
 
@@ -33,7 +32,6 @@ def people_exist_in_db(dni):
 def validate_types(name, dni, height):
 
     if type(name) == str and type(dni) == int and type(height) == float:
-        print("TRUE")
         return True
     return False
 
@@ -103,7 +101,7 @@ def people():
                 id = mongo.db.people.insert(person)
                 return jsonify({"messege": "success with id {}".format(str(id))}), 201
             else:
-                if people_exist_in_db(person["dni"] == True):
+                if people_exist_in_db(person["dni"]):
                     return (
                         "a person with dni {} already exists in the system".format(
                             person["dni"]
