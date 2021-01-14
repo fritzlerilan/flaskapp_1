@@ -8,8 +8,17 @@ from bson import json_util
 import arrow
 import requests
 
+
+
+NAME = "name"
+DNI = "dni"
+HEIGHT = "height"
+PEOPLE_DB_URL = "mongodb://localhost:27017/peopledb_test"
+NULL = "null"
+
+
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/peopledb_test"
+app.config["MONGO_URI"] = PEOPLE_DB_URL
 
 mongo = PyMongo(app)
 
@@ -24,7 +33,7 @@ def add_value(value):
 
 
 def people_exist_in_db(dni):
-    if json_util.dumps(mongo.db.people.find_one({"dni": dni})) == "null":
+    if json_util.dumps(mongo.db.people.find_one({DNI: dni})) == NULL:
         return False
     return True
 
@@ -34,7 +43,6 @@ def validate_types(name, dni, height):
     if type(name) == str and type(dni) == int and type(height) == float:
         return True
     return False
-
 
 @app.route("/")
 def index():
@@ -74,9 +82,9 @@ def people():
     bad_req_response_expected = {
         "messege": "400 - BAD REQUEST",
         "expected": {
-            "name": "<str value>",
-            "dni": "<int value>",
-            "height": "<float value>",
+            NAME: "<str value>",
+            DNI: "<int value>",
+            HEIGHT: "<float value>",
         },
     }
 
@@ -86,25 +94,22 @@ def people():
         if req_data is None:
             return jsonify(bad_req_response_expected), 400
 
-        name = dni = height = None
-
-        if "name" in req_data and "dni" in req_data and "height" in req_data:
+        if {NAME,DNI,HEIGHT} <= req_data.keys():
             person = {
-                "name": req_data["name"],
-                "dni": req_data["dni"],
-                "height": req_data["height"],
+                NAME: req_data[NAME],
+                DNI: req_data[DNI],
+                HEIGHT: req_data[HEIGHT],
             }
 
             if validate_types(
-                person["name"], person["dni"], person["height"]
-            ) and people_exist_in_db(person["dni"] == False):
+                person[NAME], person[DNI], person[HEIGHT]) and people_exist_in_db(person[DNI]) == False:
                 id = mongo.db.people.insert(person)
                 return jsonify({"messege": "success with id {}".format(str(id))}), 201
             else:
-                if people_exist_in_db(person["dni"]):
+                if people_exist_in_db(person[DNI]):
                     return (
                         "a person with dni {} already exists in the system".format(
-                            person["dni"]
+                            person[DNI]
                         ),
                         409,
                     )
@@ -114,7 +119,7 @@ def people():
             return jsonify(bad_req_response_expected), 400
 
     if request.method == "GET":
-        dni = request.args.get("dni", None)
+        dni = request.args.get(DNI, None)
         if dni:
             try:
                 dni = int(dni)
@@ -123,8 +128,8 @@ def people():
                     jsonify({"messege": "expected a <int> value for the key 'dni'"}),
                     400,
                 )
-            person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
-            if person != "null":
+            person = json_util.dumps(mongo.db.people.find_one({DNI: dni}))
+            if person != NULL:
                 response = Response(person, mimetype="application/json")
                 response.status_code = 200
                 return response
@@ -136,7 +141,7 @@ def people():
             return Response(response, mimetype="application/json")
 
     if request.method == "DELETE":
-        dni = request.args.get("dni", None)
+        dni = request.args.get(DNI, None)
         if dni:
             try:
                 dni = int(dni)
@@ -145,9 +150,9 @@ def people():
                     jsonify({"messege": "expected a <int> value for the key 'dni'"}),
                     400,
                 )
-            person = json_util.dumps(mongo.db.people.find_one({"dni": dni}))
-            if person != "null":
-                mongo.db.people.delete_one({"dni": dni})
+            person = json_util.dumps(mongo.db.people.find_one({DNI: dni}))
+            if person != NULL:
+                mongo.db.people.delete_one({DNI: dni})
                 return "", 200
             else:
                 return jsonify({"messege": "dni {} not found".format(dni)}), 204
